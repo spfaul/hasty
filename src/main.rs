@@ -1,7 +1,9 @@
 use std::fs;
 use std::time::SystemTime;
 use std::collections::HashMap;
+use std::process::Command;
 use clap::{Arg, App};
+use shellwords;
 
 fn main() -> std::io::Result<()> {
 	let cli = App::new("Hasty")
@@ -12,16 +14,34 @@ fn main() -> std::io::Result<()> {
 						.required(true)
 						.takes_value(true)
 						.value_name("FOLDER"))
+					.arg(Arg::with_name("command")
+						.help("Shell command to be run every reload")
+						.short("c")
+						.required(true)
+						.takes_value(true)
+						.value_name("COMMAND"))
 					.get_matches();
-	
 
-	watch(cli.value_of("watch_folder").unwrap());
+	let folder_path: &str = cli.value_of("watch_folder").unwrap();
+	let mut command: Command = str_to_command(cli.value_of("command").unwrap());
+	
+	watch(folder_path, &mut command);
 
 	Ok(())
 }
 
+fn str_to_command(text: &str) -> Command {
+	let command_tokens = shellwords::split(text).unwrap();
+	let mut reload_command = Command::new(&command_tokens[0]);
+	let mut temp = command_tokens.clone();
+	temp.remove(0);
+	reload_command.args(temp);
+
+	reload_command
+}
+
 #[allow(unused_variables, dead_code)]
-fn watch(folder_path: &str) {
+fn watch(folder_path: &str, reload_command: &mut Command) {
 	let mut path_to_modified_map: HashMap<String, u64> = HashMap::new();
 
 	// populate hashmap
@@ -36,10 +56,12 @@ fn watch(folder_path: &str) {
 					// new file created
 					println!("[INFO] {} created", file_path);
 					path_to_modified_map.insert(file_path, last_mod);
+					(*reload_command).spawn().expect("Command failed to start!");
 				} else if last_mod > *path_to_modified_map.get(&file_path).unwrap() {
 					// existing file updated
 					println!("[INFO] {} changed", file_path);
 					path_to_modified_map.insert(file_path, last_mod);
+					(*reload_command).spawn().expect("Command failed to start!");
 				}
 			}
 		} else {
