@@ -13,6 +13,8 @@ Reloading in hasty is customizable, allowing it to support almost any use-case.
 To test (continuing from above steps):
 ```
 > ./target/release/hasty dummy_dir/ "sh -c echo reload!"
+// Edit or create a file under the "dummy_dir" directory.
+// This should print "reload!" to stdout.
 ```
 
 For ease of use, you might want to make an alias.
