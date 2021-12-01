@@ -57,9 +57,9 @@ fn watch(folder_path: &str, reload_command: &mut Command) {
 					// new file created
 					println!("[INFO] {} created", file_path);
 					// if child proc running, kill it
-					// if let None = child_proc {
-						// terminate_command(&mut child_proc);
-					// }
+					if let Some(mut proc) = child_proc {
+						terminate_command(&mut proc);
+					}
 
 					// update the database and rerun command
 					path_to_modified_map.insert(file_path, last_mod);
