@@ -1,7 +1,7 @@
 use std::fs;
 use std::time::SystemTime;
 use std::collections::HashMap;
-use std::process::Command;
+use std::process::{Command, Child};
 use clap::{Arg, App};
 use shellwords;
 
@@ -43,6 +43,7 @@ fn str_to_command(text: &str) -> Command {
 #[allow(unused_variables, dead_code)]
 fn watch(folder_path: &str, reload_command: &mut Command) {
 	let mut path_to_modified_map: HashMap<String, u64> = HashMap::new();
+	let mut child_proc: Option<Child> = None;
 
 	// populate hashmap
 	for (file_path, last_mod) in get_folder_modified(folder_path).unwrap() {
@@ -55,19 +56,45 @@ fn watch(folder_path: &str, reload_command: &mut Command) {
 				if !path_to_modified_map.contains_key(&file_path) {
 					// new file created
 					println!("[INFO] {} created", file_path);
+					// if child proc running, kill it
+					// if let None = child_proc {
+						// terminate_command(&mut child_proc);
+					// }
+
+					// update the database and rerun command
 					path_to_modified_map.insert(file_path, last_mod);
-					(*reload_command).spawn().expect("Command failed to start!");
+					child_proc = Some(exec_command(reload_command));
+					
 				} else if last_mod > *path_to_modified_map.get(&file_path).unwrap() {
 					// existing file updated
 					println!("[INFO] {} changed", file_path);
+					// if child proc running, kill it
+					if let Some(mut proc) = child_proc {
+						terminate_command(&mut proc);
+					}
+					
+					// update the database and rerun command
 					path_to_modified_map.insert(file_path, last_mod);
-					(*reload_command).spawn().expect("Command failed to start!");
+					child_proc = Some(exec_command(reload_command));
 				}
 			}
 		} else {
 			println!("[ERROR] Recursive File metadata fetch failed!");
 		}
 	}
+}
+
+fn terminate_command(command: &mut Child) {
+	// send SIGINT to child process so we can rerun it
+	nix::sys::signal::kill(
+		nix::unistd::Pid::from_raw((*command).id() as i32),
+		nix::sys::signal::Signal::SIGINT
+	).expect("Couldn't send SIGINT");
+	(*command).wait().unwrap();
+}
+
+fn exec_command(command: &mut Command) -> Child {
+	(*command).spawn().expect("Command failed to start!")
 }
 
 fn get_folder_modified(folder_path: &str) -> std::io::Result<Vec<(String, u64)>> {
