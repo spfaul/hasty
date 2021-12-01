@@ -12,7 +12,7 @@ Reloading in hasty is customizable, allowing it to support almost any use-case.
 ```
 To test (continuing from above steps):
 ```
-> ./target/release/hasty dummy_dir/ "sh -c echo reload!"
+> ./target/release/hasty dummy_dir/ "echo reload!"
 // Edit or create a file under the "dummy_dir" directory.
 // This should print "reload!" to stdout.
 ```
@@ -29,9 +29,9 @@ You can now call hasty from anywhere using `hasty`.
 Run `hasty -h` for more details.
 
 ## Features
-[x] File watching and command execution
-[ ] Config File
+- [x] File watching and command execution
+- [ ] Config File
 
 > Stdin is not supported by rust's command execution, and any attempt by the child process to read from stdin will break.
-> See [here] for more info.(https://doc.rust-lang.org/std/process/struct.Command.html#method.output)
+> See [here](https://doc.rust-lang.org/std/process/struct.Command.html#method.output) for more info.
 
