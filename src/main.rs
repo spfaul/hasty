@@ -4,6 +4,9 @@ use std::collections::HashMap;
 use std::process::{Command, Child};
 use clap::{Arg, App};
 use shellwords;
+use std::fs::File;
+use std::io::Read;
+use json::{self, JsonValue};
 
 fn main() -> std::io::Result<()> {
 	let cli = App::new("Hasty")
@@ -11,27 +14,53 @@ fn main() -> std::io::Result<()> {
 					.author("Author: t0a5ted")
 					.arg(Arg::with_name("watch_folder")
 						.help("Relative or absolute path of folder to watch")
-						.required(true)
+						// .required(true)
 						.takes_value(true)
 						.value_name("FOLDER"))
 					.arg(Arg::with_name("command")
 						.help("Shell command to be run every reload")
 						.short("c")
-						.required(true)
+						// .required(true)
 						.takes_value(true)
 						.value_name("COMMAND"))
 					.get_matches();
 
-	let folder_path: &str = cli.value_of("watch_folder").unwrap();
-	let mut command: Command = str_to_command(cli.value_of("command").unwrap());
-	
-	watch(folder_path, &mut command);
+	let mut folder_path: &str;
+	let mut command: Command;
+	if cli.value_of("watch_folder") == None || cli.value_of("command") == None {
+		// load from config file
+		println!("Loading from .hastyrc...");
+		let (temp_folder, temp_command) = load_config();
+		folder_path = temp_folder.as_str();
+		command = str_to_command(temp_command.as_str());
+		watch(folder_path, &mut command);
+	} else {
+		// use cli args
+		folder_path = cli.value_of("watch_folder").unwrap();
+		command = str_to_command(cli.value_of("command").unwrap());
+		watch(folder_path, &mut command);
+	}
 
 	Ok(())
 }
 
+fn load_config() -> (String, String) {
+	let mut file = File::open(".hastyrc").expect(".hastyrc file not found!");
+	let mut data = String::new();
+	file.read_to_string(&mut data).unwrap();
+
+	let conf = json::parse(&data).expect("Bad json formatting!");
+	// TODO: Check validity of config file
+	return (conf["dir"].to_string(), conf["command"].to_string());
+}
+
 fn str_to_command(text: &str) -> Command {
 	let command_tokens = shellwords::split(text).unwrap();
+
+	if command_tokens.len() == 0 {
+		return Command::new("");	
+	}
+	
 	let mut reload_command = Command::new(&command_tokens[0]);
 	let mut temp = command_tokens.clone();
 	temp.remove(0);
