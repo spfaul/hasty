@@ -26,7 +26,7 @@ alias hasty="./path/to/hasty"
 You can now call hasty from anywhere using `hasty`.
 
 ## Usage
-`hasty` takes 2 arguments, FILE and COMMAND (-c).
+`hasty` takes 2 arguments, `FILE` and `COMMAND (-c)`.
 If any of the 2 arguments are not supplied, hasty will use the `.hastyrc` file in the cwd.
 
 You could do something like:
